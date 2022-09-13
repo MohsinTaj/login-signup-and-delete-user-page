@@ -25,14 +25,17 @@ app
   .get("/", (req, res) => {
     res.render("index");
   })
-  .get("/login", (req, res) => {
+  app.get("/login", (req, res) => {
     res.render("login");
   })
-  .get("/register", (req, res) => {
+  app.get("/delete", (req, res) => {
+    res.render("delete");
+  })
+  app.get("/register", (req, res) => {
     res.render("register");
   })
 
-  .get("/home", authenticateUser, (req, res) => {
+  app.get("/home", authenticateUser, (req, res) => {
     res.render("home", { user: req.session.user });
   });
 
@@ -62,15 +65,43 @@ app
 
     res.redirect("/home");
   })
-  .post("/register", async (req, res) => {
+
+  //for deleting
+app
+  .delete("/delete", async (req, res) => {
     const { email, password } = req.body;
 
     // check for missing filds
     if (!email || !password) return res.send("Please enter all the fields");
 
-    const doesUserExitsAlreay = await User.findOne({ email });
+    const doesUserExits = await User.findOne({ email });
 
-    if (doesUserExitsAlreay) return res.send("A user with that email already exits please try another one!");
+    if (!doesUserExits) return res.send("invalid username or password");
+
+    const doesPasswordMatch = await bcrypt.compare(
+      password,
+      doesUserExits.password
+    );
+
+    if (!doesPasswordMatch) return res.send("invalid useranme or password");
+
+    // else he\s logged in
+    req.session.user = {
+      email,
+    };
+
+    res.redirect("/home");
+  })
+// for registration
+  app.post("/register", async (req, res) => {
+    const { email, password } = req.body;
+
+    // check for missing filds
+    if (!email || !password) return res.send("Please enter all the fields");
+
+    const doesUserExitsAlready = await User.findOne({ email });
+
+    if (doesUserExitsAlready) return res.send("A user with that email already exits please try another one!");
 
     // lets hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -79,17 +110,23 @@ app
     latestUser
       .save()
       .then(() => {
-        res.send("registered account!");
-        res.redirect("/login");
+  
+        console.log("successfully registered")
+        res.send("registered account!")
+        // res.redirect("/login");
       })
-      .catch((err) => console.log(err));
-  });
-
+   
+      .catch((err) => console.log("oh no mom",err));
+ 
+  })
+  
 //logout
 app.get("/logout", authenticateUser, (req, res) => {
   req.session.user = null;
   res.redirect("/login");
 });
+
+
 
 // server config
 const PORT = process.env.PORT || 3000;
