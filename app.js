@@ -2,7 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
-
+var MongoClient = require('mongodb').MongoClient;
+var url = "mongodb://localhost:27017/databaseName";
 
 const User = require("./models/User");
 
@@ -67,8 +68,7 @@ app
   })
 
   //for deleting
-app
-  .delete("/delete", async (req, res) => {
+  app.post('/delete' , async (req,res)=>{
     const { email, password } = req.body;
 
     // check for missing filds
@@ -76,22 +76,45 @@ app
 
     const doesUserExits = await User.findOne({ email });
 
-    if (!doesUserExits) return res.send("invalid username or password");
+    if (!doesUserExits) return res.send("id doesnot exist");
 
     const doesPasswordMatch = await bcrypt.compare(
       password,
       doesUserExits.password
     );
 
-    if (!doesPasswordMatch) return res.send("invalid useranme or password");
+    if (!doesPasswordMatch) return res.send("id doesnot exist");
 
-    // else he\s logged in
-    req.session.user = {
-      email,
-    };
 
-    res.redirect("/home");
+
+    // lets hash the password
+    const latestUser = new User({ email, password });
+
+    latestUser
+      .remove()
+      .then(() => {
+      
+MongoClient.connect(url, function(err, db) {  
+if (err) throw err;  
+db.collection("users").remove(req.body, function(err, obj) {  
+if (err) throw err;  
+console.log(obj.result.n + " record(s) deleted");  
+db.close();  
+});  
+});
+  
+        console.log("successfully deleted")
+        res.send("deleted account!")
+        // res.redirect("/login");
+      })
+   
+      .catch((err) => console.log("oh no",err));
+ 
   })
+
+
+
+  
 // for registration
   app.post("/register", async (req, res) => {
     const { email, password } = req.body;
@@ -112,11 +135,11 @@ app
       .then(() => {
   
         console.log("successfully registered")
-        res.send("registered account!")
-        // res.redirect("/login");
+      
+        res.redirect("/login");
       })
    
-      .catch((err) => console.log("oh no mom",err));
+      .catch((err) => console.log("oh no",err));
  
   })
   
