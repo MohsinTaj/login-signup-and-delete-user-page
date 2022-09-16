@@ -2,8 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
-var MongoClient = require('mongodb').MongoClient;
-var url = "mongodb://localhost:27017/databaseName";
+
 
 const User = require("./models/User");
 
@@ -41,8 +40,7 @@ app
   });
 
 // route for handling post requirests
-app
-  .post("/login", async (req, res) => {
+app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     // check for missing filds
@@ -70,6 +68,7 @@ app
   //for deleting
   app.post('/delete' , async (req,res)=>{
     const { email, password } = req.body;
+   
 
     // check for missing filds
     if (!email || !password) return res.send("Please enter all the fields");
@@ -88,32 +87,29 @@ app
 
 
     // lets hash the password
-    const latestUser = new User({ email, password });
-
-    latestUser
-      .remove()
-      .then(() => {
-      
-MongoClient.connect(url, function(err, db) {  
-if (err) throw err;  
-db.collection("users").remove(req.body, function(err, obj) {  
-if (err) throw err;  
-console.log(obj.result.n + " record(s) deleted");  
-db.close();  
-});  
-});
-  
-        console.log("successfully deleted")
-        res.send("deleted account!")
-        // res.redirect("/login");
-      })
-   
-      .catch((err) => console.log("oh no",err));
+    
+    // const hashedPassword = await bcrypt.hash(password, 12);
  
+   
+ 
+    // const hashedPassword = await bcrypt.hash(password, 12);
+    //  const latestUser = new User({ email, password: hashedPassword });
+   
+   
+    try{
+      const latestUser =  await User.deleteOne ({email});
+        console.log("successfully deleted")
+        res.send("user deleted succesfully")
+
+        // res.redirect("/login");
+      }
+   
+      catch(err) { console.log("oh no",err);
+ 
+  }
   })
 
-
-
+  
   
 // for registration
   app.post("/register", async (req, res) => {
@@ -128,15 +124,16 @@ db.close();
 
     // lets hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
-    const latestUser = new User({ email, password: hashedPassword });
+    const latestUser = new User({ email, password : hashedPassword});
 
     latestUser
       .save()
       .then(() => {
+        // alert("you are registered")
   
         console.log("successfully registered")
       
-        res.redirect("/login");
+        res.send("successfully registered");
       })
    
       .catch((err) => console.log("oh no",err));
